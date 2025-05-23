@@ -4,65 +4,61 @@ import boto3
 import logging
 from datetime import datetime
 
-# Налаштування логування
+# Configure logging
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
-# Ініціалізація клієнтів AWS
+# Initialize AWS clients
 dynamodb = boto3.resource('dynamodb')
 ses_client = boto3.client('ses')
 
-# Отримання імені таблиці DynamoDB з змінних середовища
+# Get DynamoDB table name from environment variables
 DYNAMODB_TABLE = os.environ['DYNAMODB_TABLE']
 orders_table = dynamodb.Table(DYNAMODB_TABLE)
 
 
 def lambda_handler(event, context):
     """
-    Lambda-функція для обробки замовлень з черги SQS.
+    Lambda function for processing orders from SQS queue.
 
-    Параметри:
-        event (dict): Подія SQS з повідомленнями
-        context (object): Об'єкт контексту виконання Lambda
+    Parameters:
+        event (dict): SQS event with messages
+        context (object): Lambda execution context object
 
-    Повертає:
-        dict: Результат обробки
+    Returns:
+        dict: Processing result
     """
-    logger.info(f"Отримано подію SQS: {json.dumps(event)}")
+    logger.info(f"Received SQS event: {json.dumps(event)}")
 
-    # Відстеження успішних та невдалих обробок
+    # Track successful and failed processing
     processed_orders = []
     failed_orders = []
 
-    # Перебір отриманих повідомлень
+    # Process received messages
     for record in event['Records']:
+        order_id = "unknown"
         try:
-            # Отримання даних замовлення
+            # Get order data
             message_body = record['body']
             order_data = json.loads(message_body)
             order_id = order_data['orderId']
 
-            logger.info(f"Обробка замовлення: {order_id}")
+            logger.info(f"Processing order: {order_id}")
 
-            # Обробка замовлення
+            # Process order
             process_order(order_data)
 
-            # Відправка підтвердження електронною поштою
+            # Send confirmation email
             send_confirmation_email(order_data)
 
             processed_orders.append(order_id)
-            logger.info(f"Замовлення {order_id} успішно оброблено")
+            logger.info(f"Order {order_id} processed successfully")
 
         except Exception as e:
-            if 'orderId' in locals():
-                failed_order_id = order_id
-            else:
-                failed_order_id = "unknown"
+            failed_orders.append(order_id)
+            logger.error(f"Error processing order {order_id}: {str(e)}")
 
-            failed_orders.append(failed_order_id)
-            logger.error(f"Помилка обробки замовлення {failed_order_id}: {str(e)}")
-
-    # Повернення результату
+    # Return result
     return {
         'processedOrders': processed_orders,
         'failedOrders': failed_orders,
@@ -73,73 +69,73 @@ def lambda_handler(event, context):
 
 def process_order(order_data):
     """
-    Обробляє замовлення та зберігає його в DynamoDB.
+    Processes order and stores it in DynamoDB.
 
-    Параметри:
-        order_data (dict): Дані замовлення
+    Parameters:
+        order_data (dict): Order data
     """
-    # Оновлення статусу та часу обробки
+    # Update status and processing time
     order_data['status'] = 'PROCESSED'
     order_data['processedAt'] = datetime.utcnow().isoformat()
 
-    # Обчислення загальної суми замовлення
+    # Calculate total order amount
     total_amount = sum(item['price'] * item['quantity'] for item in order_data['items'])
     order_data['totalAmount'] = total_amount
 
-    # Збереження замовлення в DynamoDB
+    # Save order to DynamoDB
     orders_table.put_item(Item=order_data)
 
-    # Тут також можна додати оновлення інвентаря, створення рахунку тощо
-    logger.info(f"Замовлення {order_data['orderId']} збережено в DynamoDB")
+    # Here you can also add inventory updates, invoice creation, etc.
+    logger.info(f"Order {order_data['orderId']} saved to DynamoDB")
 
 
 def send_confirmation_email(order_data):
     """
-    Відправляє електронний лист підтвердження замовлення.
+    Sends order confirmation email.
 
-    Параметри:
-        order_data (dict): Дані замовлення
+    Parameters:
+        order_data (dict): Order data
     """
-    # В реальному додатку ви б використовували AWS SES для відправки листів
-    # Тут це заглушка, оскільки для використання SES потрібна верифікація домену
+    # In a real application you would use AWS SES to send emails
+    # This is a stub since SES requires domain verification
 
     customer_email = order_data['customerEmail']
     order_id = order_data['orderId']
     customer_name = order_data['customerName']
 
-    # Створення тексту листа
-    email_subject = f"Підтвердження замовлення #{order_id}"
+    # Create email content
+    email_subject = f"Order Confirmation #{order_id}"
 
     items_list = "\n".join([
-        f"- {item['quantity']}x {item.get('productName', 'Товар')} "
-        f"({item['price']} грн за одиницю)"
+        f"- {item['quantity']}x {item.get('productName', 'Product')} "
+        f"(${item['price']:.2f} each)"
         for item in order_data['items']
     ])
 
     total_amount = sum(item['price'] * item['quantity'] for item in order_data['items'])
 
     email_body = f"""
-    Шановний(а) {customer_name},
+    Dear {customer_name},
 
-    Дякуємо за ваше замовлення #{order_id}!
+    Thank you for your order #{order_id}!
 
-    Деталі замовлення:
+    Order details:
     {items_list}
 
-    Загальна сума: {total_amount} грн
+    Total amount: ${total_amount:.2f}
 
-    Статус замовлення: Оброблено
+    Order status: Processed
 
-    Відстежуйте статус вашого замовлення через наш веб-сайт.
+    Track your order status on our website.
 
-    З повагою,
-    Команда електронного магазину
+    Best regards,
+    E-commerce Team
     """
 
-    # Це місце для виклику AWS SES, якщо ваш аккаунт має всі необхідні дозволи
-    logger.info(f"Підтвердження надіслано на адресу {customer_email} для замовлення {order_id}")
+    # This is where you would call AWS SES if your account has all necessary permissions
+    logger.info(f"Confirmation sent to {customer_email} for order {order_id}")
 
-    # Заглушка для SES (в реальному додатку розкоментуйте код нижче)
+    # SES stub (uncomment in real application)
     """
     ses_client.send_email(
         Source='orders@yourstore.com',

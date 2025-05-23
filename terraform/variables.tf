@@ -1,53 +1,59 @@
 variable "aws_region" {
-  description = "AWS регіон для розгортання"
+  description = "AWS region for deployment"
   type        = string
   default     = "eu-central-1"
 }
 
 variable "environment" {
-  description = "Середовище розгортання (dev, prod)"
+  description = "Deployment environment (dev, staging, prod)"
   type        = string
   default     = "dev"
 }
 
 variable "project" {
-  description = "Назва проекту"
+  description = "Project name"
   type        = string
-  default     = "e-commerce-order-processor"
+  default     = "ecommerce-order-processor"
 }
 
 variable "lambda_timeout" {
-  description = "Таймаут для Lambda функцій (секунди)"
+  description = "Timeout for Lambda functions (seconds)"
   type        = number
   default     = 30
 }
 
 variable "lambda_memory" {
-  description = "Виділена пам'ять для Lambda функцій (МБ)"
+  description = "Allocated memory for Lambda functions (MB)"
   type        = number
   default     = 256
 }
 
 variable "sqs_message_retention_seconds" {
-  description = "Час зберігання повідомлень в SQS черзі (секунди)"
+  description = "SQS message retention time (seconds)"
   type        = number
-  default     = 86400 # 24 години
+  default     = 86400 # 24 hours
 }
 
 variable "sqs_visibility_timeout_seconds" {
-  description = "Час видимості повідомлень в SQS черзі (секунди)"
+  description = "SQS message visibility timeout (seconds)"
   type        = number
   default     = 60
 }
 
 variable "lambda_validator_zip" {
-  description = "Шлях до ZIP архіву з кодом Lambda функції для валідації"
+  description = "Path to ZIP archive with validator Lambda function code"
   type        = string
   default     = "../dist/order_validator.zip"
 }
 
 variable "lambda_processor_zip" {
-  description = "Шлях до ZIP архіву з кодом Lambda функції для обробки"
+  description = "Path to ZIP archive with processor Lambda function code"
   type        = string
   default     = "../dist/order_processor.zip"
+}
+
+variable "lambda_layer_zip" {
+  description = "Path to ZIP archive with Lambda layer dependencies"
+  type        = string
+  default     = "../dist/python_layer.zip"
 }

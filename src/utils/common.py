@@ -2,17 +2,17 @@ import os
 import json
 import logging
 
-# Налаштування логування
+# Configure logging
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 
 def get_common_headers():
     """
-    Повертає стандартні заголовки для відповідей API.
+    Returns standard headers for API responses.
 
-    Повертає:
-        dict: Заголовки HTTP відповіді
+    Returns:
+        dict: HTTP response headers
     """
     return {
         'Content-Type': 'application/json',
@@ -24,14 +24,14 @@ def get_common_headers():
 
 def create_response(status_code, body):
     """
-    Створює стандартний формат відповіді для API Gateway.
+    Creates standard response format for API Gateway.
 
-    Параметри:
-        status_code (int): HTTP код статусу
-        body (dict): Тіло відповіді
+    Parameters:
+        status_code (int): HTTP status code
+        body (dict): Response body
 
-    Повертає:
-        dict: Структурована відповідь для API Gateway
+    Returns:
+        dict: Structured response for API Gateway
     """
     return {
         'statusCode': status_code,
@@ -42,60 +42,60 @@ def create_response(status_code, body):
 
 def validate_required_fields(data, required_fields):
     """
-    Перевіряє наявність всіх обов'язкових полів у даних.
+    Checks presence of all required fields in data.
 
-    Параметри:
-        data (dict): Дані для перевірки
-        required_fields (list): Список обов'язкових полів
+    Parameters:
+        data (dict): Data to check
+        required_fields (list): List of required fields
 
-    Повертає:
-        tuple: (True, None) якщо всі поля присутні, інакше (False, повідомлення_про_помилку)
+    Returns:
+        tuple: (True, None) if all fields present, otherwise (False, error_message)
     """
     for field in required_fields:
         if field not in data:
-            return False, f"Відсутнє обов'язкове поле: {field}"
+            return False, f"Missing required field: {field}"
 
     return True, None
 
 
 def get_environment_name():
     """
-    Отримує назву поточного середовища розгортання.
+    Gets current deployment environment name.
 
-    Повертає:
-        str: Назва середовища ('dev', 'test', 'prod')
+    Returns:
+        str: Environment name ('dev', 'test', 'prod')
     """
     return os.environ.get('ENVIRONMENT', 'dev')
 
 
 def is_debug_mode():
     """
-    Перевіряє, чи увімкнено режим налагодження.
+    Checks if debug mode is enabled.
 
-    Повертає:
-        bool: True, якщо режим налагодження увімкнено
+    Returns:
+        bool: True if debug mode is enabled
     """
     return os.environ.get('DEBUG_MODE', 'false').lower() == 'true'
 
 
 def sanitize_data(data):
     """
-    Очищує дані від потенційно небезпечного вмісту.
+    Sanitizes data from potentially dangerous content.
 
-    Параметри:
-        data (dict): Дані для очищення
+    Parameters:
+        data (dict): Data to sanitize
 
-    Повертає:
-        dict: Очищені дані
+    Returns:
+        dict: Sanitized data
     """
-    # Проста версія очищення даних - у реальному додатку тут буде складніша логіка
+    # Simple data sanitization - in real application there would be more complex logic
     if not isinstance(data, dict):
         return data
 
     sanitized = {}
     for key, value in data.items():
         if isinstance(value, str):
-            # Видалення керуючих символів
+            # Remove control characters
             sanitized[key] = ''.join(c for c in value if c >= ' ')
         elif isinstance(value, dict):
             sanitized[key] = sanitize_data(value)
