@@ -504,7 +504,7 @@ resource "aws_api_gateway_deployment" "api_deployment" {
     aws_api_gateway_integration.options_integration
   ]
 
-  rest_api_id = aws_api_gateway_rest_api.id
+  rest_api_id = aws_api_gateway_rest_api.orders_api.id
 
   triggers = {
     redeployment = sha1(jsonencode([
