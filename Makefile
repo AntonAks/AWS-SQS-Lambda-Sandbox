@@ -11,6 +11,7 @@ SRC_DIR := src
 DIST_DIR := dist
 TERRAFORM_DIR := terraform
 LAYER_DIR := layer
+SCRIPTS_DIR := scripts
 
 # Python settings
 PYTHON_VERSION := python3.9
@@ -86,8 +87,16 @@ deploy: package terraform-apply ## Package and deploy everything
 	@echo "Getting API URL..."
 	@cd $(TERRAFORM_DIR) && terraform output -raw api_url
 
-test-api: ## Test the deployed API
-	@echo "Testing API..."
+test-api: ## Test the deployed API using Python script
+	@echo "Testing API using Python test script..."
+	@if [ ! -f "$(SCRIPTS_DIR)/test_api.py" ]; then \
+		echo "Error: Test script not found at $(SCRIPTS_DIR)/test_api.py"; \
+		exit 1; \
+	fi; \
+	cd $(SCRIPTS_DIR) && python3 test_api.py
+
+test-api-quick: ## Quick API test using inline Python
+	@echo "Quick API test..."
 	@API_URL=$$(cd $(TERRAFORM_DIR) && terraform output -raw api_url 2>/dev/null); \
 	if [ -z "$$API_URL" ]; then \
 		echo "Error: Could not get API URL. Make sure the infrastructure is deployed."; \
@@ -211,5 +220,5 @@ validate: ## Validate all configurations
 
 # Quick commands
 quick-deploy: package terraform-apply ## Quick deployment (package + deploy)
-quick-test: test-api sqs-status ## Quick test (API + SQS status)
+quick-test: test-api sqs-status ## Quick test (comprehensive API test + SQS status)
 quick-logs: logs-validator logs-processor ## Show all Lambda logs
