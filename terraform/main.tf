@@ -450,7 +450,7 @@ resource "aws_lambda_permission" "api_gateway" {
   source_arn = "${aws_api_gateway_rest_api.orders_api.execution_arn}/*/*"
 }
 
-# API deployment
+# API deployment (without deprecated stage_name)
 resource "aws_api_gateway_deployment" "api_deployment" {
   depends_on = [
     aws_api_gateway_integration.lambda_integration,
@@ -458,7 +458,6 @@ resource "aws_api_gateway_deployment" "api_deployment" {
   ]
 
   rest_api_id = aws_api_gateway_rest_api.orders_api.id
-  stage_name  = var.environment
 
   triggers = {
     redeployment = sha1(jsonencode([
@@ -472,5 +471,45 @@ resource "aws_api_gateway_deployment" "api_deployment" {
 
   lifecycle {
     create_before_destroy = true
+  }
+}
+
+# API Gateway stage (replaces deprecated stage_name in deployment)
+resource "aws_api_gateway_stage" "api_stage" {
+  deployment_id = aws_api_gateway_deployment.api_deployment.id
+  rest_api_id   = aws_api_gateway_rest_api.orders_api.id
+  stage_name    = var.environment
+
+  # Enable CloudWatch logging
+  access_log_settings {
+    destination_arn = aws_cloudwatch_log_group.api_gateway_logs.arn
+    format = jsonencode({
+      requestId      = "$context.requestId"
+      ip             = "$context.identity.sourceIp"
+      caller         = "$context.identity.caller"
+      user           = "$context.identity.user"
+      requestTime    = "$context.requestTime"
+      httpMethod     = "$context.httpMethod"
+      resourcePath   = "$context.resourcePath"
+      status         = "$context.status"
+      protocol       = "$context.protocol"
+      responseLength = "$context.responseLength"
+    })
+  }
+
+  tags = {
+    Environment = var.environment
+    Project     = var.project
+  }
+}
+
+# CloudWatch log group for API Gateway
+resource "aws_cloudwatch_log_group" "api_gateway_logs" {
+  name              = "/aws/apigateway/${var.project}-orders-api-${var.environment}"
+  retention_in_days = 14
+
+  tags = {
+    Environment = var.environment
+    Project     = var.project
   }
 }

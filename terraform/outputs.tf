@@ -1,11 +1,11 @@
 output "api_url" {
   description = "API Gateway endpoint URL for creating orders"
-  value       = "${aws_api_gateway_deployment.api_deployment.invoke_url}/${aws_api_gateway_resource.orders_resource.path_part}"
+  value       = "https://${aws_api_gateway_rest_api.orders_api.id}.execute-api.${var.aws_region}.amazonaws.com/${aws_api_gateway_stage.api_stage.stage_name}/${aws_api_gateway_resource.orders_resource.path_part}"
 }
 
 output "api_base_url" {
   description = "API Gateway base URL"
-  value       = aws_api_gateway_deployment.api_deployment.invoke_url
+  value       = "https://${aws_api_gateway_rest_api.orders_api.id}.execute-api.${var.aws_region}.amazonaws.com/${aws_api_gateway_stage.api_stage.stage_name}"
 }
 
 output "orders_queue_url" {
@@ -46,6 +46,11 @@ output "aws_region" {
 output "api_gateway_id" {
   description = "API Gateway ID"
   value       = aws_api_gateway_rest_api.orders_api.id
+}
+
+output "api_gateway_stage_name" {
+  description = "API Gateway stage name"
+  value       = aws_api_gateway_stage.api_stage.stage_name
 }
 
 output "deployment_environment" {
